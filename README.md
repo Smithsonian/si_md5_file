@@ -8,16 +8,16 @@ https://dpo.si.edu/
 
 ## Installation
 
-To install using pip:
-
-```bash
-pip install simd5
-```
-
-Or:
+To install:
 
 ```bash
 python3 -m pip install simd5
+```
+
+To upgrade add `-U`:
+
+```bash
+python3 -m pip install -U simd5
 ```
 
 ## Usage
@@ -32,7 +32,7 @@ simd5.md5_file(folder="files", fileformat="m f", workers=4)
 
 The command can take these arguments:
 
- * `folder`: Where to look for folders and files. It will run in all subfolders. 
+ * `folder`: Which folder to run in. Will ignore subfolders.
  * `fileformat`: What format to use when creating the MD5 file:
    ** `m f`: `[MD5 hash] [filename]` (space-separated)
    ** `f m`: `[filename] [MD5 hash]` (space-separated)
