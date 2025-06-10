@@ -4,7 +4,7 @@
 #   MD5 hash of all the files in a subdirectory for digital deliveries.
 # v 0.3.0
 # 
-# 17 Jan 2025
+# 10 Jun 2025
 #
 # Digitization Program Office,
 # Office of the Chief Information Officer,
@@ -16,6 +16,7 @@
 import os
 import glob
 import itertools
+import pandas as pd
 
 # from pathlib import Path
 from time import localtime
@@ -44,7 +45,7 @@ def md5sum(filename):
     return filename, d.hexdigest()
 
 
-def md5_file(folder=None, fileformat="m f", workers=multiprocessing.cpu_count(), forced=False):
+def md5_file(folder=None, fileformat="m f", no_workers=multiprocessing.cpu_count(), forced=False):
     # If there is already a md5 file, ignore unless forced is True
     if len(glob.glob("{}/*.md5".format(folder))) > 0 and forced is False:
         print("\n   md5 file exists, skipping...")
@@ -60,9 +61,9 @@ def md5_file(folder=None, fileformat="m f", workers=multiprocessing.cpu_count(),
         print("\n There are no files in {}".format(folder))
         return
     else:
-        print("\n Running on {} using {} workers".format(folder, workers))
+        print("\n Running on {} using {} workers".format(folder, no_workers))
         # Calculate md5 hashes in parallel using a progress bar
-        results = p_map(md5sum, files, **{"num_cpus": int(workers)})
+        results = p_map(md5sum, files, **{"num_cpus": int(no_workers)})
         with open("{}/{}_{}.md5".format(folder, os.path.basename(folder), strftime("%Y%m%d%H%M%S", localtime())),
                   'w') as fp:
             for res in results:
@@ -91,14 +92,14 @@ def check_md5sum(md5_file, file):
     file_md5 = md5_hash.hexdigest()
     md5_from_file = md5_file[md5_file.file == filename]['md5'].to_string(index=False).strip()
     if file_md5 == md5_from_file:
-        return 0
+        return (filename, file_md5, md5_from_file, 0)
     elif md5_from_file == 'Series([], )':
-        return 1
+        return (filename, file_md5, md5_from_file, 1)
     else:
-        return 1
+        return (filename, file_md5, md5_from_file, 1)
 
 
-def check_md5_file(md5_file=None, files=None, no_workers=1):
+def check_md5_file(md5_file=None, files=None, csv=False, no_workers=1):
     """
     Compare hashes between files and what the md5 file says
     """
@@ -106,22 +107,32 @@ def check_md5_file(md5_file=None, files=None, no_workers=1):
         no_workers = int(no_workers)
     except ValueError:
         print("Invalid value for no_workers")
-        return 9,9
+        return 9, 9
     no_cores = os.cpu_count()
     if no_workers > no_cores:
         no_workers = no_cores
     if md5_file == None:
         print("Missing md5_file")
-        return 9,9
+        return 9, 9
+    md5_file = pd.read_csv(md5_file, sep=" ", names=('md5', 'file'))
     if files == None:
         print("Missing list of files")
-        return 9,9
+        return 9, 9
+    files=glob.glob(files)
     inputs = zip(itertools.repeat(md5_file), files)
+    if csv:
+        if os.path.isfile("results.csv"):
+            try:
+                os.remove("results.csv")
+            except:
+                return 1, "Error removing results.csv file"
     with Pool(no_workers) as pool:
-        bad_files = pool.starmap(check_md5sum, inputs)
+        checked_files = pd.DataFrame(pool.starmap(check_md5sum, inputs), columns=("filename", "file_md5", "md5_from_file", "error"))
         pool.close()
         pool.join()
-    if sum(bad_files) > 0:
-        return 1, "Hash of {} files don't match the contents of the MD5 file".format(sum(bad_files))
+    if csv:
+        checked_files.to_csv("results.csv", header = 1, index = False, mode = "w")
+    if checked_files['error'].sum() > 0:
+        return 1, "Hash of {} files don't match the contents of the MD5 file".format(str(checked_files['error'].sum()))
     else:
         return 0, 0

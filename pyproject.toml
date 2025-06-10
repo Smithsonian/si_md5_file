@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "simd5"
-version = "0.2.1"
+version = "0.3.0"
 authors = [
   { name="Luis J. Villanueva", email="villanueval@si.edu" },
 ]
@@ -19,5 +19,5 @@ classifiers = [
 dependencies = ["p_tqdm"]
 
 [project.urls]
-"Homepage" = "https://github.com/Smithsonian/si_md5_file"
-"Bug Tracker" = "https://github.com/Smithsonian/si_md5_file/issues"
+"Homepage" = "https://github.com/Smithsonian/simd5"
+"Bug Tracker" = "https://github.com/Smithsonian/simd5/issues"
